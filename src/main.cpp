@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <map>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 
@@ -9,6 +10,39 @@ float max2Min = 0.0;
 float min5Min = 0.0;
 float max5Min = 0.0;
 int tempsTemp = 0;
+
+long tempsDebut = 0.0;
+long tempsCourant = 0.0;
+long tempsPasse = 0.0;
+
+
+std::map<int, double> arrTemp;
+
+void setTemperature(double Temperature){
+    tempsCourant = millis()/1000;
+  tempsPasse = tempsCourant - tempsDebut;
+
+  if(tempsPasse >= 1)
+  {
+    //ajoute nouvelle temperature
+    arrTemp[millis()/1000] = Temperature;
+
+    //si plus que 5min on le retire du map
+    if(arrTemp.begin()->first - 300 < millis()/1000 - 300)
+      arrTemp.erase(arrTemp.begin());
+
+    setMinMax();
+    tempsDebut = tempsCourant;
+  }
+}
+
+void setMinMax(){
+  
+}
+
+
+
+
 
 double getCurrentTemp() {
   // Read temperature from the sensor and return the value
@@ -86,4 +120,5 @@ void setup() {
 
 void loop() {
   httpd.handleClient();
+  setTemperature(getCurrentTemp());
 }
