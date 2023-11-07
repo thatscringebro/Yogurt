@@ -1,6 +1,14 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <PID_v1.h>
+
+double Setpoint, Input, Output;
+
+double aggKp=4, aggKi=0.2, aggKd=1;
+double consKp=1, consKi=0.05, consKd=0.25;
+
+PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
 
 ESP8266WebServer httpd(80);
 bool MijoteuseOn = true;
@@ -74,6 +82,13 @@ void handleMijoteuse() {
 void setup() {
   Serial.begin(115200);
 
+  Input = analogRead(A0);
+  Setpoint =  43.00;
+  myPID.SetMode(AUTOMATIC);
+
+
+
+
   Serial.println("Creation de l'AP...");
   WiFi.softAP("WifiTropCool", "Qwerty123!");
   Serial.println(WiFi.softAPIP());
@@ -82,8 +97,29 @@ void setup() {
   httpd.on("/mijoteuse", handleMijoteuse);
 
   httpd.begin();
+
+  
+
+
 }
 
 void loop() {
+
+
+if(MijoteuseOn){
+  Input = analogRead(A0);
+
+  double gap = abs(Setpoint - Input);
+
+  if(gap < 10)
+    myPID.SetTunings(consKp, consKi, consKd);
+  else
+    myPID.SetTunings(aggKp, aggKi, aggKd);
+
+  myPID.Compute();
+  analogWrite(3,Output);
+}
+
+
   httpd.handleClient();
 }
