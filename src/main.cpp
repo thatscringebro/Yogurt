@@ -3,13 +3,50 @@
 #include <ESP8266WebServer.h>
 
 ESP8266WebServer httpd(80);
+bool MijoteuseOn = true;
+float min2Min = 0.0;
+float max2Min = 0.0;
+float min5Min = 0.0;
+float max5Min = 0.0;
+int tempsTemp = 0;
 
-void HandleRacine(){
+float getCurrentTemp() {
+  // Read temperature from the sensor and return the value
+  int valeur = analogRead(A0);
+  
+  //Formule pour transformer en degré -> 10000 pour resistance 10k, 3977 pour beta
+  float voltage = valeur * 5.0 / 1023.0;
+  float resistance = 10000.0 * voltage / (5.0 - voltage);
+  float tempKelvin = 1.0 / (1.0 / 298.15 + log(resistance / 10000.0) / 3977); 
+
+  float tempCelcius = tempKelvin - 273.15;
+
+  return tempCelcius;
+}
+
+float getIntensité() {
+  
+}
+
+float* get2Min() {
+  float arr[2];
+  arr[0] = min2Min;
+  arr[1] = max2Min;
+  return arr;
+}
+
+float* get5Min() {
+  float arr[2];
+  arr[0] = min5Min;
+  arr[1] = max5Min;
+  return arr;
+}
+
+void handleRacine(){
   String response = "<html><body>C'EST TROP COOL</body></html>";
   httpd.send(200, "text/html", response);
 }
 
-bool MijoteuseOn = true;
 void handleMijoteuse() {
   if (httpd.hasArg("action"))
   {
@@ -40,7 +77,7 @@ void setup() {
 
   LittleFS.begin();
 
-  httpd.on("/", HandleRacine);
+  httpd.on("/", handleRacine);
   httpd.on("/mijoteuse", handleMijoteuse);
 
   httpd.begin();
