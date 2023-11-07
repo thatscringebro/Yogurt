@@ -10,36 +10,34 @@ float min5Min = 0.0;
 float max5Min = 0.0;
 int tempsTemp = 0;
 
-float getCurrentTemp() {
+double getCurrentTemp() {
   // Read temperature from the sensor and return the value
   int valeur = analogRead(A0);
   
   //Formule pour transformer en degré -> 10000 pour resistance 10k, 3977 pour beta
-  float voltage = valeur * 5.0 / 1023.0;
-  float resistance = 10000.0 * voltage / (5.0 - voltage);
-  float tempKelvin = 1.0 / (1.0 / 298.15 + log(resistance / 10000.0) / 3977); 
+  double voltage = valeur * 5.0 / 1023.0;
+  double resistance = 10000.0 * voltage / (5.0 - voltage);
+  double tempKelvin = 1.0 / (1.0 / 298.15 + log(resistance / 10000.0) / 3977); 
 
-  float tempCelcius = tempKelvin - 273.15;
+  double tempCelcius = tempKelvin - 273.15; 
 
   return tempCelcius;
 }
 
-float getIntensité() {
-  
+String getIntensite() {
+  return String(0.0);
 }
 
-float* get2Min() {
-  float arr[2];
-  arr[0] = min2Min;
-  arr[1] = max2Min;
-  return arr;
-}
+String getTemps() {
+  int hr = tempsTemp / 3600;
+  int mins = (tempsTemp - hr * 3600) / 60;
+  int sec = tempsTemp - hr * 3600 - mins * 60; 
+  sec %= 60;
+  mins %= 60;
+  hr %= 24;
 
-float* get5Min() {
-  float arr[2];
-  arr[0] = min5Min;
-  arr[1] = max5Min;
-  return arr;
+  String hrMinSec = (String(hr) + ":" + String(mins) + ":" + String(sec));
+  return hrMinSec;
 }
 
 void handleRacine(){
@@ -58,6 +56,11 @@ void handleMijoteuse() {
   }
   
   String reponse = "<html><body>";
+    reponse += "<p>Temperature courante: " + String(getCurrentTemp(), 2) + "</p>";
+    reponse += "<p>Temperature 2min: " + String(min2Min, 2) + " " + String(max2Min) + "</p>";
+    reponse += "<p>Temperature 5min: " + String(min5Min, 2) + " " + String(max5Min, 2) + "</p>";
+    reponse += "<p>Temps de temperature: " + getTemps() + "</p>";
+    reponse += "<p>Intensite de chauffage: " + getIntensite() + "</p>";
     reponse += "<a href=\"/mijoteuse?action=on\">ON</a>";
     reponse += "<a href=\"/mijoteuse?action=off\">OFF</a>";
     reponse += "<div style=\"width: 10px; height: 10px; background-color: ";
@@ -74,8 +77,6 @@ void setup() {
   Serial.println("Creation de l'AP...");
   WiFi.softAP("WifiTropCool", "Qwerty123!");
   Serial.println(WiFi.softAPIP());
-
-  LittleFS.begin();
 
   httpd.on("/", handleRacine);
   httpd.on("/mijoteuse", handleMijoteuse);
