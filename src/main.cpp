@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <map>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <PID_v1.h>
@@ -16,7 +17,52 @@ float min2Min = 0.0;
 float max2Min = 0.0;
 float min5Min = 0.0;
 float max5Min = 0.0;
-int tempsTemp = 0;
+int tempsInital = 0;
+
+long tempsDebut = 0.0;
+long tempsCourant = 0.0;
+long tempsPasse = 0.0;
+
+
+std::map<int, double> arrTemp;
+
+void setTemperature(double Temperature){
+    tempsCourant = millis()/1000;
+  tempsPasse = tempsCourant - tempsDebut;
+
+  if(tempsPasse >= 1)
+  {
+    //ajoute nouvelle temperature
+    arrTemp[millis()/1000] = Temperature;
+
+    //si plus que 5min on le retire du map
+    if(arrTemp.begin()->first - 300 < millis()/1000 - 300)
+      arrTemp.erase(arrTemp.begin());
+
+    setMinMax();
+    tempsDebut = tempsCourant;
+  }
+}
+
+void setMinMax(){
+  for (const auto& pair : arrTemp)
+  {
+    //pour 5min
+    if(pair.second > max5Min)
+      max5Min = pair.second;
+    if(pair.second < min5Min)
+      min5Min = pair.second;
+    //pour 2min
+    if((pair.first > millis()/1000 - 120) && (pair.second > max2Min))
+      max2Min = pair.second;
+    if((pair.first > millis()/1000 - 120) && (pair.second < min2Min))
+      min2Min = pair.second;
+  }
+}
+
+
+
+
 
 double getCurrentTemp() {
   // Read temperature from the sensor and return the value
@@ -37,14 +83,19 @@ String getIntensite() {
 }
 
 String getTemps() {
-  int hr = tempsTemp / 3600;
-  int mins = (tempsTemp - hr * 3600) / 60;
-  int sec = tempsTemp - hr * 3600 - mins * 60; 
-  sec %= 60;
-  mins %= 60;
-  hr %= 24;
-
-  String hrMinSec = (String(hr) + ":" + String(mins) + ":" + String(sec));
+  String hrMinSec = "La machine a yogourt n'est pas entre 41 et 45 celcius";
+  if(tempsInital != 0) {
+    int tempsTemp = (millis() - tempsInital) / 1000;
+    int hr = tempsTemp / 3600;
+    int mins = (tempsTemp - hr * 3600) / 60;
+    int sec = tempsTemp - hr * 3600 - mins * 60; 
+    sec %= 60;
+    mins %= 60;
+    hr %= 24;
+  
+    hrMinSec = (String(hr) + ":" + String(mins) + ":" + String(sec));
+  }
+  
   return hrMinSec;
 }
 
@@ -122,4 +173,10 @@ if(MijoteuseOn){
 
 
   httpd.handleClient();
+  setTemperature(getCurrentTemp());
+
+  if(getCurrentTemp() < 41 || getCurrentTemp() > 45)
+    tempsInital = 0;
+  else if (tempsInital == 0)
+    tempsInital = millis();
 }
