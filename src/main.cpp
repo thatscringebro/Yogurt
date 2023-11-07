@@ -8,7 +8,7 @@ float min2Min = 0.0;
 float max2Min = 0.0;
 float min5Min = 0.0;
 float max5Min = 0.0;
-int tempsTemp = 0;
+int tempsInital = 0;
 
 double getCurrentTemp() {
   // Read temperature from the sensor and return the value
@@ -29,14 +29,19 @@ String getIntensite() {
 }
 
 String getTemps() {
-  int hr = tempsTemp / 3600;
-  int mins = (tempsTemp - hr * 3600) / 60;
-  int sec = tempsTemp - hr * 3600 - mins * 60; 
-  sec %= 60;
-  mins %= 60;
-  hr %= 24;
-
-  String hrMinSec = (String(hr) + ":" + String(mins) + ":" + String(sec));
+  String hrMinSec = "La machine a yogourt n'est pas entre 41 et 45 celcius";
+  if(tempsInital != 0) {
+    int tempsTemp = (millis() - tempsInital) / 1000;
+    int hr = tempsTemp / 3600;
+    int mins = (tempsTemp - hr * 3600) / 60;
+    int sec = tempsTemp - hr * 3600 - mins * 60; 
+    sec %= 60;
+    mins %= 60;
+    hr %= 24;
+  
+    hrMinSec = (String(hr) + ":" + String(mins) + ":" + String(sec));
+  }
+  
   return hrMinSec;
 }
 
@@ -86,4 +91,9 @@ void setup() {
 
 void loop() {
   httpd.handleClient();
+
+  if(getCurrentTemp() < 41 || getCurrentTemp() > 45)
+    tempsInital = 0;
+  else if (tempsInital == 0)
+    tempsInital = millis();
 }
