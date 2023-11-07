@@ -37,7 +37,19 @@ void setTemperature(double Temperature){
 }
 
 void setMinMax(){
-  
+  for (const auto& pair : arrTemp)
+  {
+    //pour 5min
+    if(pair.second > max5Min)
+      max5Min = pair.second;
+    if(pair.second < min5Min)
+      min5Min = pair.second;
+    //pour 2min
+    if((pair.first > millis()/1000 - 120) && (pair.second > max2Min))
+      max2Min = pair.second;
+    if((pair.first > millis()/1000 - 120) && (pair.second < min2Min))
+      min2Min = pair.second;
+  }
 }
 
 
