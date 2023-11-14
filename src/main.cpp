@@ -158,6 +158,8 @@ void loop() {
     temp = getCurrentTemp();
     Input = temp;
 
+    Serial.println(temp);
+
     if(temp <= 50) {
       double gap = abs(Setpoint - Input);
 
@@ -173,13 +175,13 @@ void loop() {
     }
 
     startTime = currentTime;
+
+    setTemperature(temp);
+    if(temp < 41 || temp > 45)
+      tempsInital = 0;
+    else if (tempsInital == 0)
+      tempsInital = millis();
   }
 
   httpd.handleClient();
-  setTemperature(temp);
-
-  if(temp < 41 || temp > 45)
-    tempsInital = 0;
-  else if (tempsInital == 0)
-    tempsInital = millis();
 }
