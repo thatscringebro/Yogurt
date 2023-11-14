@@ -6,7 +6,7 @@
 
 double Setpoint, Input, Output;
 
-double aggKp=4, aggKi=0.2, aggKd=1;
+double aggKp=16, aggKi=1, aggKd=1;
 double consKp=1, consKi=0.05, consKd=0.25;
 
 PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
@@ -18,31 +18,17 @@ float max2Min = 0.0;
 float min5Min = 0.0;
 float max5Min = 0.0;
 int tempsInital = 0;
+unsigned int compteur = 0;
 
 long tempsDebut = 0.0;
 long tempsCourant = 0.0;
 long tempsPasse = 0.0;
 
+long elapsedTime = 0;
+long startTime = 0;
+
 
 std::map<int, double> arrTemp;
-
-void setTemperature(double Temperature){
-    tempsCourant = millis()/1000;
-  tempsPasse = tempsCourant - tempsDebut;
-
-  if(tempsPasse >= 1)
-  {
-    //ajoute nouvelle temperature
-    arrTemp[millis()/1000] = Temperature;
-
-    //si plus que 5min on le retire du map
-    if(arrTemp.begin()->first - 300 < millis()/1000 - 300)
-      arrTemp.erase(arrTemp.begin());
-
-    setMinMax();
-    tempsDebut = tempsCourant;
-  }
-}
 
 void setMinMax(){
   for (const auto& pair : arrTemp)
@@ -60,9 +46,23 @@ void setMinMax(){
   }
 }
 
+void setTemperature(double Temperature){
+  tempsCourant = millis()/1000;
+  tempsPasse = tempsCourant - tempsDebut;
 
+  if(tempsPasse >= 1)
+  {
+    //ajoute nouvelle temperature
+    arrTemp[millis()/1000] = Temperature;
 
+    //si plus que 5min on le retire du map
+    if(arrTemp.begin()->first - 300 < millis()/1000 - 300)
+      arrTemp.erase(arrTemp.begin());
 
+    setMinMax();
+    tempsDebut = tempsCourant;
+  }
+}
 
 double getCurrentTemp() {
   // Read temperature from the sensor and return the value
@@ -136,9 +136,7 @@ void setup() {
   Input = analogRead(A0);
   Setpoint =  43.00;
   myPID.SetMode(AUTOMATIC);
-
-
-
+  pinMode(D1, OUTPUT);
 
   Serial.println("Creation de l'AP...");
   WiFi.softAP("WifiTropCool", "Qwerty123!");
@@ -149,33 +147,38 @@ void setup() {
 
   httpd.begin();
 
-  
-
-
 }
 
 void loop() {
+  long currentTime = millis();
+  elapsedTime = currentTime - startTime;
+  double temp = 0;
+  if(MijoteuseOn && elapsedTime >= 100){
+    Serial.println("chauffing");
+    temp = getCurrentTemp();
+    Input = temp;
 
+    if(temp <= 50) {
+      double gap = abs(Setpoint - Input);
 
-if(MijoteuseOn){
-  Input = analogRead(A0);
+      if(gap < 5)
+        myPID.SetTunings(consKp, consKi, consKd);
+      else
+        myPID.SetTunings(aggKp, aggKi, aggKd);
 
-  double gap = abs(Setpoint - Input);
+      myPID.Compute();
 
-  if(gap < 10)
-    myPID.SetTunings(consKp, consKi, consKd);
-  else
-    myPID.SetTunings(aggKp, aggKi, aggKd);
+      Serial.println(Output);
+      analogWrite(D1,Output);
+    }
 
-  myPID.Compute();
-  analogWrite(3,Output);
-}
-
+    startTime = currentTime;
+  }
 
   httpd.handleClient();
-  setTemperature(getCurrentTemp());
+  setTemperature(temp);
 
-  if(getCurrentTemp() < 41 || getCurrentTemp() > 45)
+  if(temp < 41 || temp > 45)
     tempsInital = 0;
   else if (tempsInital == 0)
     tempsInital = millis();
