@@ -12,7 +12,7 @@ double consKp=1, consKi=0.05, consKd=0.25;
 PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
 
 ESP8266WebServer httpd(80);
-bool MijoteuseOn = true;
+bool MijoteuseOn = false;
 float min2Min = 0.0;
 float max2Min = 0.0;
 float min5Min = 0.0;
@@ -153,9 +153,12 @@ void loop() {
   long currentTime = millis();
   elapsedTime = currentTime - startTime;
   double temp = 0;
-  if(MijoteuseOn && elapsedTime >= 100){
+  if(MijoteuseOn){
     Serial.println("chauffing");
-    temp = getCurrentTemp();
+    if (elapsedTime >= 100)
+      temp = getCurrentTemp();
+    else
+      temp = 0;
     Input = temp;
 
     Serial.println(temp);
@@ -163,7 +166,7 @@ void loop() {
     if(temp <= 50) {
       double gap = abs(Setpoint - Input);
 
-      if(gap < 5)
+      if(gap < 10)
         myPID.SetTunings(consKp, consKi, consKd);
       else
         myPID.SetTunings(aggKp, aggKi, aggKd);
@@ -171,7 +174,12 @@ void loop() {
       myPID.Compute();
 
       Serial.println(Output);
-      analogWrite(D1,Output);
+
+      int pourcentageChauffage = (Output/255) * 100;
+      if(elapsedTime < pourcentageChauffage)
+      {
+        digitalWrite(D1, 1);
+      }
     }
 
     startTime = currentTime;
