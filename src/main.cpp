@@ -157,41 +157,36 @@ void loop() {
   long currentTime = millis();
   elapsedTime = currentTime - startTime;
   double temp = 0;
-  if(MijoteuseOn){
-    if (elapsedTime >= 100)
-    {
-      Serial.println("chauffing");
-      temp = getCurrentTemp();
-      Input = temp;
-
-      Serial.println(Input);
-      Serial.println(elapsedTime);
-    }
-
-    if(temp <= 43) {
-      double gap = abs(Setpoint - Input);
-
-      if(gap < 10)
-        myPID.SetTunings(consKp, consKi, consKd);
-      else
-        myPID.SetTunings(aggKp, aggKi, aggKd);
-
-      myPID.Compute();
-    }
-    if(elapsedTime >= 100)
-      startTime = currentTime;
-
-    setTemperature(temp);
-    if(temp < 41 || temp > 45)
-      tempsInital = 0;
-    else if (tempsInital == 0)
-      tempsInital = millis();
+  if (elapsedTime >= 100)
+  {
+    Serial.println("chauffing");
+    temp = getCurrentTemp();
+    Input = temp;
+   Serial.println(Input);
+    Serial.println(elapsedTime);
   }
+
+  if(temp <= 43) {
+    double gap = abs(Setpoint - Input);
+   if(gap < 10)
+      myPID.SetTunings(consKp, consKi, consKd);
+    else
+      myPID.SetTunings(aggKp, aggKi, aggKd);
+   myPID.Compute();
+  }
+  if(elapsedTime >= 100)
+    startTime = currentTime;
+
+  setTemperature(temp);
+  if(temp < 41 || temp > 45)
+    tempsInital = 0;
+  else if (tempsInital == 0)
+    tempsInital = millis();
 
   unsigned long tempsActuel = millis();
   int pourcentageChauffage = (Output * 100) / 255;
 
-  if (tempsActuel - tempsDebutChauffage < pourcentageChauffage) {
+  if (tempsActuel - tempsDebutChauffage < pourcentageChauffage && MijoteuseOn) {
     digitalWrite(D1, HIGH);
   } else {
     digitalWrite(D1, LOW);
