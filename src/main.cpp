@@ -6,8 +6,8 @@
 
 double Setpoint, Input, Output;
 
-double aggKp=16, aggKi=1, aggKd=1;
-double consKp=1, consKi=0.05, consKd=0.25;
+double aggKp=8, aggKi=4, aggKd=4;
+double consKp=5, consKi=1, consKd=1;
 
 PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
 
@@ -26,6 +26,10 @@ long tempsPasse = 0.0;
 
 long elapsedTime = 0;
 long startTime = 0;
+
+long tempsChauffage;
+long tempsMaxChauffage; 
+long tempsDebutChauffage;
 
 
 std::map<int, double> arrTemp;
@@ -154,16 +158,17 @@ void loop() {
   elapsedTime = currentTime - startTime;
   double temp = 0;
   if(MijoteuseOn){
-    Serial.println("chauffing");
     if (elapsedTime >= 100)
+    {
+      Serial.println("chauffing");
       temp = getCurrentTemp();
-    else
-      temp = 0;
-    Input = temp;
+      Input = temp;
 
-    Serial.println(temp);
+      Serial.println(Input);
+      Serial.println(elapsedTime);
+    }
 
-    if(temp <= 50) {
+    if(temp <= 43) {
       double gap = abs(Setpoint - Input);
 
       if(gap < 10)
@@ -172,17 +177,9 @@ void loop() {
         myPID.SetTunings(aggKp, aggKi, aggKd);
 
       myPID.Compute();
-
-      Serial.println(Output);
-
-      int pourcentageChauffage = (Output/255) * 100;
-      if(elapsedTime < pourcentageChauffage)
-      {
-        digitalWrite(D1, 1);
-      }
     }
-
-    startTime = currentTime;
+    if(elapsedTime >= 100)
+      startTime = currentTime;
 
     setTemperature(temp);
     if(temp < 41 || temp > 45)
@@ -190,6 +187,21 @@ void loop() {
     else if (tempsInital == 0)
       tempsInital = millis();
   }
+
+  unsigned long tempsActuel = millis();
+  int pourcentageChauffage = (Output * 100) / 255;
+
+  if (tempsActuel - tempsDebutChauffage < pourcentageChauffage) {
+    digitalWrite(D1, HIGH);
+  } else {
+    digitalWrite(D1, LOW);
+
+    if (tempsActuel - tempsDebutChauffage >= 100) {
+      tempsDebutChauffage = millis();
+    }
+  }
+
+  Serial.println(pourcentageChauffage);
 
   httpd.handleClient();
 }
