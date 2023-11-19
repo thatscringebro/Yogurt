@@ -83,7 +83,7 @@ double getCurrentTemp() {
 }
 
 String getIntensite() {
-  return String(0.0);
+  return String((Output * 100) / 255);
 }
 
 String getTemps() {
@@ -123,7 +123,7 @@ void handleMijoteuse() {
     reponse += "<p>Temperature 2min: " + String(min2Min, 2) + " " + String(max2Min) + "</p>";
     reponse += "<p>Temperature 5min: " + String(min5Min, 2) + " " + String(max5Min, 2) + "</p>";
     reponse += "<p>Temps de temperature: " + getTemps() + "</p>";
-    reponse += "<p>Intensite de chauffage: " + getIntensite() + "</p>";
+    reponse += "<p>Intensite de chauffage: " + getIntensite() + "%</p>";
     reponse += "<a href=\"/mijoteuse?action=on\">ON</a>";
     reponse += "<a href=\"/mijoteuse?action=off\">OFF</a>";
     reponse += "<div style=\"width: 10px; height: 10px; background-color: ";
