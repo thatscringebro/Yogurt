@@ -6,8 +6,8 @@
 
 double Setpoint, Input, Output;
 
-double aggKp=8, aggKi=4, aggKd=4;
-double consKp=5, consKi=1, consKd=1;
+double aggKp=35, aggKi=0.5, aggKd=2;
+double consKp=35, consKi=0.5, consKd=2;
 
 PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
 
@@ -54,8 +54,6 @@ void setTemperature(double Temperature){
   tempsCourant = millis()/1000;
   tempsPasse = tempsCourant - tempsDebut;
 
-  if(tempsPasse >= 1)
-  {
     //ajoute nouvelle temperature
     arrTemp[millis()/1000] = Temperature;
 
@@ -65,7 +63,6 @@ void setTemperature(double Temperature){
 
     setMinMax();
     tempsDebut = tempsCourant;
-  }
 }
 
 double getCurrentTemp() {
