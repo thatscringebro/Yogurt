@@ -6,8 +6,8 @@
 
 double Setpoint, Input, Output;
 
-double aggKp=40, aggKi=0.5, aggKd=2;
-double consKp=40, consKi=0.5, consKd=2;
+double aggKp=37, aggKi=0.5, aggKd=2;
+double consKp=37, consKi=0.5, consKd=2;
 
 PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
 
@@ -189,6 +189,14 @@ void loop() {
     Serial.println("température max (2minutes) : " + String(max2Min, 2));
     Serial.println("température min (5minutes) : " + String(min5Min, 2));
     Serial.println("température max (5minutes) : " + String(max5Min, 2));
+
+  if(temp < 41 || temp > 45){
+    tempsInital = 0;
+    Serial.println("temps initiale: " + String(tempsInital));
+    Serial.println("temperature: " + String(temp));
+  }
+  else if(tempsInital == 0)
+    tempsInital = millis();
   }
 
   if(temp <= 43) {
@@ -201,11 +209,6 @@ void loop() {
   }
   if(elapsedTime >= 100)
     startTime = currentTime;
-
-  if(temp < 41 || temp > 45)
-    tempsInital = 0;
-  else if (tempsInital == 0)
-    tempsInital = millis();
 
   unsigned long tempsActuel = millis();
   int pourcentageChauffage = (Output * 100) / 255;
