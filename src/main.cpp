@@ -6,17 +6,13 @@
 
 double Setpoint, Input, Output;
 
-double aggKp=35, aggKi=0.5, aggKd=2;
-double consKp=35, consKi=0.5, consKd=2;
+double aggKp=40, aggKi=0.5, aggKd=2;
+double consKp=40, consKi=0.5, consKd=2;
 
 PID myPID(&Input, &Output, &Setpoint, consKp, consKi, consKd, DIRECT);
 
 ESP8266WebServer httpd(80);
 bool MijoteuseOn = false;
-float min2Min = 0.0;
-float max2Min = 0.0;
-float min5Min = 0.0;
-float max5Min = 0.0;
 int tempsInital = 0;
 unsigned int compteur = 0;
 
@@ -32,38 +28,9 @@ long tempsMaxChauffage;
 long tempsDebutChauffage;
 
 
-std::map<int, double> arrTemp;
+std::map<int, double> arrTemp5min;
+std::map<int, double> arrTemp2min;
 
-void setMinMax(){
-  for (const auto& pair : arrTemp)
-  {
-    //pour 5min
-    if(pair.second > max5Min)
-      max5Min = pair.second;
-    if(pair.second < min5Min)
-      min5Min = pair.second;
-    //pour 2min
-    if((pair.first > millis()/1000 - 120) && (pair.second > max2Min))
-      max2Min = pair.second;
-    if((pair.first > millis()/1000 - 120) && (pair.second < min2Min))
-      min2Min = pair.second;
-  }
-}
-
-void setTemperature(double Temperature){
-  tempsCourant = millis()/1000;
-  tempsPasse = tempsCourant - tempsDebut;
-
-    //ajoute nouvelle temperature
-    arrTemp[millis()/1000] = Temperature;
-
-    //si plus que 5min on le retire du map
-    if(arrTemp.begin()->first - 300 < millis()/1000 - 300)
-      arrTemp.erase(arrTemp.begin());
-
-    setMinMax();
-    tempsDebut = tempsCourant;
-}
 
 double getCurrentTemp() {
   // Read temperature from the sensor and return the value
@@ -78,6 +45,64 @@ double getCurrentTemp() {
 
   return tempCelcius;
 }
+
+float min2Min = getCurrentTemp();
+float max2Min = getCurrentTemp();
+float min5Min = getCurrentTemp();
+float max5Min = getCurrentTemp();
+
+void setMinMax() {
+  max2Min = arrTemp2min.begin()->second;
+  min2Min = arrTemp2min.begin()->second;
+  max5Min = arrTemp5min.begin()->second;
+  min5Min = arrTemp5min.begin()->second;
+
+  for (const auto& pair : arrTemp2min) {
+    // pour 2min
+    if (pair.second > max2Min)
+      max2Min = pair.second;
+    if (pair.second < min2Min)
+      min2Min = pair.second;
+  }
+
+  for (const auto& pair : arrTemp5min) {
+    // pour 5min
+    if (pair.second > max5Min)
+      max5Min = pair.second;
+    if (pair.second < min5Min)
+      min5Min = pair.second;
+  }
+}
+
+void setTemperature(double Temperature){
+  tempsCourant = millis()/1000;
+  tempsPasse = tempsCourant - tempsDebut;
+
+  // Ajoute nouvelle temperature
+  arrTemp5min[millis()/1000] = Temperature;
+  arrTemp2min[millis()/1000] = Temperature;
+  Serial.println("valeur ajouter a l'array : " + String(Temperature, 2));
+  // Si plus que 2min, on le retire du map
+  if (arrTemp2min.begin()->first < millis()/1000 - 120)
+    arrTemp2min.erase(arrTemp2min.begin());
+  // Si plus que 5min, on le retire du map
+  if (arrTemp5min.begin()->first < millis()/1000 - 300)
+    arrTemp5min.erase(arrTemp5min.begin());
+
+  // set les valeurs min max si c'est la première température
+  if (arrTemp2min.size() == 1) {
+    min2Min = Temperature;
+    max2Min = Temperature;
+  }
+  if (arrTemp5min.size() == 1){
+    min5Min = Temperature;
+    max5Min = Temperature;
+  }
+
+  setMinMax();
+  tempsDebut = tempsCourant;
+}
+
 
 String getIntensite() {
   return String((Output * 100) / 255);
@@ -117,8 +142,8 @@ void handleMijoteuse() {
   
   String reponse = "<html><body>";
     reponse += "<p>Temperature courante: " + String(getCurrentTemp(), 2) + "</p>";
-    reponse += "<p>Temperature 2min: " + String(min2Min, 2) + " " + String(max2Min) + "</p>";
-    reponse += "<p>Temperature 5min: " + String(min5Min, 2) + " " + String(max5Min, 2) + "</p>";
+    reponse += "<p>Temperature 2min: " + String(min2Min, 2) + " - " + String(max2Min) + "</p>";
+    reponse += "<p>Temperature 5min: " + String(min5Min, 2) + " - " + String(max5Min, 2) + "</p>";
     reponse += "<p>Temps de temperature: " + getTemps() + "</p>";
     reponse += "<p>Intensite de chauffage: " + getIntensite() + "%</p>";
     reponse += "<a href=\"/mijoteuse?action=on\">ON</a>";
@@ -159,8 +184,11 @@ void loop() {
     Serial.println("chauffing");
     temp = getCurrentTemp();
     Input = temp;
-   Serial.println(Input);
-    Serial.println(elapsedTime);
+    setTemperature(temp);
+    Serial.println("température min (2minutes) : " + String(min2Min, 2));
+    Serial.println("température max (2minutes) : " + String(max2Min, 2));
+    Serial.println("température min (5minutes) : " + String(min5Min, 2));
+    Serial.println("température max (5minutes) : " + String(max5Min, 2));
   }
 
   if(temp <= 43) {
@@ -174,7 +202,6 @@ void loop() {
   if(elapsedTime >= 100)
     startTime = currentTime;
 
-  setTemperature(temp);
   if(temp < 41 || temp > 45)
     tempsInital = 0;
   else if (tempsInital == 0)
@@ -192,8 +219,5 @@ void loop() {
       tempsDebutChauffage = millis();
     }
   }
-
-  Serial.println(pourcentageChauffage);
-
   httpd.handleClient();
 }
